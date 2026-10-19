@@ -1273,6 +1273,12 @@ function keepLargestComponentOnly(
                 largestPixels =
                     component;
             }
+            console.log(
+            "Largest component size:",
+            largestSize
+);
+
+return result;
         }
     }
 
