@@ -59,6 +59,92 @@
             </div>
         </section>
 
+        <section class="threshold-panel">
+    <div class="threshold-header">
+        <div>
+            <h2>透過しきい値調整</h2>
+
+            <p>
+                小さな背景の残りや、輪郭の半透明部分を調整します。
+            </p>
+        </div>
+
+        <button
+            id="resetThresholdBtn"
+            class="button button-secondary button-small"
+            type="button"
+        >
+            初期値に戻す
+        </button>
+    </div>
+
+    <div class="threshold-controls">
+        <div class="threshold-control">
+            <div class="threshold-label">
+                <label for="transparentThreshold">
+                    透明化しきい値
+                </label>
+
+                <output
+                    id="transparentThresholdValue"
+                    for="transparentThreshold"
+                >
+                    40
+                </output>
+            </div>
+
+            <input
+                id="transparentThreshold"
+                class="threshold-slider"
+                type="range"
+                min="0"
+                max="200"
+                step="1"
+                value="40"
+            >
+
+            <div class="threshold-scale">
+                <span>輪郭を残す</span>
+                <span>背景を強く消す</span>
+            </div>
+        </div>
+
+        <div class="threshold-control">
+            <div class="threshold-label">
+                <label for="opaqueThreshold">
+                    不透明化しきい値
+                </label>
+
+                <output
+                    id="opaqueThresholdValue"
+                    for="opaqueThreshold"
+                >
+                    220
+                </output>
+            </div>
+
+            <input
+                id="opaqueThreshold"
+                class="threshold-slider"
+                type="range"
+                min="55"
+                max="255"
+                step="1"
+                value="220"
+            >
+
+            <div class="threshold-scale">
+                <span>輪郭をくっきり</span>
+                <span>半透明を残す</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="threshold-note">
+        変更すると、処理済み画像へ自動的に再適用されます。
+    </div>
+</section>
+        
         <section
             id="dropArea"
             class="drop-area"
