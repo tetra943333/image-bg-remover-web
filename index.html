@@ -2,43 +2,157 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>背景透過ツール</title>
 
-    <link rel="stylesheet" href="style.css">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="ブラウザ上で画像の背景を削除し、透過PNGとして保存できるツールです。"
+    >
+
+    <title>AI背景透過ツール</title>
+
+    <link rel="stylesheet" href="./style.css">
 </head>
+
 <body>
+    <main class="container">
+        <header class="header">
+            <h1>AI背景透過ツール</h1>
 
-    <div class="container">
+            <p class="description">
+                画像の背景をブラウザ内で削除し、
+                透過PNGとして保存します。
+            </p>
+        </header>
 
-        <h1>背景透過ツール</h1>
+        <section class="model-panel">
+            <div class="model-status-line">
+                <span
+                    id="modelStatusIcon"
+                    class="status-icon status-waiting"
+                    aria-hidden="true"
+                ></span>
 
-        <div id="dropArea">
-            <p>画像をドラッグ＆ドロップ</p>
-            <p>または</p>
+                <span id="modelStatus">
+                    AIモデルは最初の背景削除時に読み込みます
+                </span>
+            </div>
 
-            <input type="file"
-                   id="fileInput"
-                   accept="image/*"
-                   multiple
-                   hidden>
+            <div
+                id="modelProgressArea"
+                class="model-progress-area hidden"
+            >
+                <div class="progress-track">
+                    <div
+                        id="modelProgressBar"
+                        class="progress-bar"
+                    ></div>
+                </div>
 
-            <button id="selectBtn">
+                <div id="modelProgressText" class="progress-text">
+                    準備中...
+                </div>
+            </div>
+        </section>
+
+        <section
+            id="dropArea"
+            class="drop-area"
+            tabindex="0"
+            role="button"
+            aria-label="画像を選択またはドロップ"
+        >
+            <div class="drop-icon" aria-hidden="true">
+                ＋
+            </div>
+
+            <p class="drop-title">
+                画像をここへドラッグ＆ドロップ
+            </p>
+
+            <p class="drop-subtitle">
+                JPG・PNG・WEBPなど、複数画像を選択できます
+            </p>
+
+            <input
+                type="file"
+                id="fileInput"
+                accept="image/*"
+                multiple
+                hidden
+            >
+
+            <button
+                id="selectBtn"
+                class="button button-primary"
+                type="button"
+            >
                 画像を選択
             </button>
-        </div>
+        </section>
 
-        <div class="actions">
-            <button id="processBtn">
-                STEP2で背景削除
-            </button>
-        </div>
+        <section class="toolbar">
+            <div class="file-summary">
+                <span id="fileCount">画像 0枚</span>
+            </div>
 
-        <div id="previewArea"></div>
+            <div class="toolbar-buttons">
+                <button
+                    id="clearBtn"
+                    class="button button-secondary"
+                    type="button"
+                    disabled
+                >
+                    すべて削除
+                </button>
 
-    </div>
+                <button
+                    id="processAllBtn"
+                    class="button button-success"
+                    type="button"
+                    disabled
+                >
+                    すべて背景削除
+                </button>
+            </div>
+        </section>
 
-    <script src="app.js"></script>
+        <section
+            id="messageArea"
+            class="message-area hidden"
+            role="status"
+            aria-live="polite"
+        ></section>
 
+        <section
+            id="previewArea"
+            class="preview-grid"
+            aria-label="選択した画像"
+        ></section>
+
+        <section
+            id="emptyState"
+            class="empty-state"
+        >
+            <p>まだ画像が選択されていません</p>
+        </section>
+
+        <footer class="footer">
+            <p>
+                初回処理時はAIモデルをダウンロードします。
+                2回目以降はブラウザのキャッシュが利用される場合があります。
+            </p>
+
+            <p>
+                画像処理はブラウザ内で実行されます。
+            </p>
+        </footer>
+    </main>
+
+    <script type="module" src="./app.js"></script>
 </body>
 </html>
