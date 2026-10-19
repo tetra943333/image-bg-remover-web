@@ -583,7 +583,7 @@ async function processSingleImage(itemId) {
     try {
         await loadModel();
 
-        const resultBlob = await removeBackground(item.file);
+        const resultBlob = await removeBackground(item);
 
         if (item.resultUrl) {
             URL.revokeObjectURL(item.resultUrl);
@@ -642,7 +642,7 @@ async function processAllImages() {
 
             try {
                 const resultBlob =
-                    await removeBackground(item.file);
+                    await removeBackground(item);
 
                 if (item.resultUrl) {
                     URL.revokeObjectURL(item.resultUrl);
@@ -872,12 +872,18 @@ function getOutputTensor(modelOutput) {
 /**
  * 元画像とマスクを合成して透過PNGを作成
  */
-async function composeTransparentPng(file, maskImage) {
+async function composeTransparentPng(
+    file,
+    maskImage
+) {
     const originalBitmap =
         await createImageBitmap(file);
 
-    const width = originalBitmap.width;
-    const height = originalBitmap.height;
+    const width =
+        originalBitmap.width;
+
+    const height =
+        originalBitmap.height;
 
     const outputCanvas =
         document.createElement("canvas");
@@ -885,12 +891,13 @@ async function composeTransparentPng(file, maskImage) {
     outputCanvas.width = width;
     outputCanvas.height = height;
 
-    const outputContext = outputCanvas.getContext(
-        "2d",
-        {
-            willReadFrequently: true
-        }
-    );
+    const outputContext =
+        outputCanvas.getContext(
+            "2d",
+            {
+                willReadFrequently: true
+            }
+        );
 
     if (!outputContext) {
         originalBitmap.close();
@@ -900,7 +907,13 @@ async function composeTransparentPng(file, maskImage) {
         );
     }
 
-    outputContext.clearRect(0, 0, width, height);
+    outputContext.clearRect(
+        0,
+        0,
+        width,
+        height
+    );
+
     outputContext.drawImage(
         originalBitmap,
         0,
@@ -919,55 +932,81 @@ async function composeTransparentPng(file, maskImage) {
             height
         );
 
-    const maskCanvas =
-        document.createElement("canvas");
-
-    maskCanvas.width = width;
-    maskCanvas.height = height;
-
-    const maskContext =
-        maskCanvas.getContext(
-            "2d",
-            {
-                willReadFrequently: true
-            }
-        );
-
-    if (!maskContext) {
-        throw new Error(
-            "マスク処理用キャンバスを作成できませんでした。"
-        );
-    }
-
-    const maskData = normalizeMaskData(
-        maskImage,
-        width,
-        height
-    );
-
-    const maskImageData =
-        new ImageData(maskData, width, height);
-
-    maskContext.putImageData(maskImageData, 0, 0);
-
-    const renderedMask =
-        maskContext.getImageData(
-            0,
-            0,
+    const maskData =
+        normalizeMaskData(
+            maskImage,
             width,
             height
         );
 
-    const originalData = originalPixels.data;
-    const alphaData = renderedMask.data;
+    const originalData =
+        originalPixels.data;
 
-    for (let index = 0; index < originalData.length; index += 4) {
-        const alpha = alphaData[index];
+    const transparentThreshold =
+        getTransparentThreshold();
 
-        // 元画像にも透明度がある場合は両方を反映
+    const opaqueThreshold =
+        getOpaqueThreshold();
+
+    for (
+        let index = 0;
+        index < originalData.length;
+        index += 4
+    ) {
+        let alpha = maskData[index];
+
+        /*
+         * 下限未満は完全透明
+         */
+        if (alpha <= transparentThreshold) {
+            alpha = 0;
+        }
+
+        /*
+         * 上限以上は完全不透明
+         */
+        else if (alpha >= opaqueThreshold) {
+            alpha = 255;
+        }
+
+        /*
+         * 中間領域を0～255へ再配置。
+         * 輪郭の滑らかさを維持しながら
+         * 背景側の薄い残りを除去します。
+         */
+        else {
+            alpha =
+                (
+                    alpha -
+                    transparentThreshold
+                ) /
+                (
+                    opaqueThreshold -
+                    transparentThreshold
+                );
+
+            /*
+             * Smoothstepで輪郭の急激な
+             * ギザギザを抑制します。
+             */
+            alpha =
+                alpha *
+                alpha *
+                (3 - 2 * alpha);
+
+            alpha =
+                Math.round(alpha * 255);
+        }
+
+        /*
+         * 元画像がもともと透明な場合も維持
+         */
         originalData[index + 3] =
             Math.round(
-                (originalData[index + 3] * alpha) / 255
+                (
+                    originalData[index + 3] *
+                    alpha
+                ) / 255
             );
     }
 
@@ -977,7 +1016,9 @@ async function composeTransparentPng(file, maskImage) {
         0
     );
 
-    return await canvasToBlob(outputCanvas);
+    return await canvasToBlob(
+        outputCanvas
+    );
 }
 
 /**
