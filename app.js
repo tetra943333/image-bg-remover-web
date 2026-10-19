@@ -1403,6 +1403,12 @@ function resetThresholds() {
  * 透明化しきい値取得
  */
 function getTransparentThreshold() {
+
+    console.log(
+        "slider value =",
+        elements.transparentThreshold.value
+    );
+
     return Number(
         elements.transparentThreshold.value
     );
