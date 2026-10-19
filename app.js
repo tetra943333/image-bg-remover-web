@@ -679,9 +679,37 @@ async function removeBackground(file) {
             );
         }
 
-        const maskTensor = outputTensor
-            .squeeze()
-            .sigmoid();
+        /*
+         * モデル出力:
+         * [1, 1, 高さ, 幅]
+         *
+         * squeeze()を引数なしで使うと:
+         * [高さ, 幅]
+         *
+         * となり、RawImageが要求する
+         * [チャンネル, 高さ, 幅]
+         * ではなくなるため、
+         * バッチ次元0だけを削除します。
+         */
+        let maskTensor = outputTensor;
+
+        if (maskTensor.dims.length === 4) {
+            maskTensor = maskTensor.squeeze(0);
+        }
+
+        maskTensor = maskTensor.sigmoid();
+
+        console.log(
+            "マスクTensorの形状:",
+            maskTensor.dims
+        );
+
+        if (maskTensor.dims.length !== 3) {
+            throw new Error(
+                `マスクの次元が不正です: ` +
+                `${JSON.stringify(maskTensor.dims)}`
+            );
+        }
 
         const maskImage =
             await RawImage.fromTensor(maskTensor);
