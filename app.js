@@ -904,6 +904,8 @@ function getOutputTensor(modelOutput) {
     }) || null;
 }
 
+
+
 /**
  * 元画像とマスクを合成して透過PNGを作成
  */
@@ -967,12 +969,19 @@ async function composeTransparentPng(
             height
         );
 
-    const maskData =
-        normalizeMaskData(
-            maskImage,
-            width,
-            height
-        );
+    let maskData =
+    normalizeMaskData(
+        maskImage,
+        width,
+        height
+    );
+
+maskData =
+    keepLargestComponentOnly(
+        maskData,
+        width,
+        height
+    );
 
     const originalData =
         originalPixels.data;
@@ -1146,6 +1155,153 @@ function normalizeMaskData(maskImage, width, height) {
     }
 
     return rgba;
+}
+
+function keepLargestComponentOnly(
+    rgbaMask,
+    width,
+    height
+) {
+    const visited =
+        new Uint8Array(width * height);
+
+    let largestPixels = [];
+    let largestSize = 0;
+
+    const directions = [
+        [-1,0],
+        [1,0],
+        [0,-1],
+        [0,1]
+    ];
+
+    for (
+        let y = 0;
+        y < height;
+        y++
+    ) {
+        for (
+            let x = 0;
+            x < width;
+            x++
+        ) {
+            const index =
+                y * width + x;
+
+            if (visited[index]) {
+                continue;
+            }
+
+            const alpha =
+                rgbaMask[index * 4];
+
+            if (alpha < 128) {
+                continue;
+            }
+
+            const queue = [index];
+            const component = [];
+
+            visited[index] = 1;
+
+            while (
+                queue.length > 0
+            ) {
+                const current =
+                    queue.pop();
+
+                component.push(current);
+
+                const cy =
+                    Math.floor(
+                        current / width
+                    );
+
+                const cx =
+                    current % width;
+
+                for (
+                    const [dx,dy]
+                    of directions
+                ) {
+                    const nx =
+                        cx + dx;
+
+                    const ny =
+                        cy + dy;
+
+                    if (
+                        nx < 0 ||
+                        ny < 0 ||
+                        nx >= width ||
+                        ny >= height
+                    ) {
+                        continue;
+                    }
+
+                    const n =
+                        ny * width + nx;
+
+                    if (
+                        visited[n]
+                    ) {
+                        continue;
+                    }
+
+                    const neighborAlpha =
+                        rgbaMask[n * 4];
+
+                    if (
+                        neighborAlpha < 128
+                    ) {
+                        continue;
+                    }
+
+                    visited[n] = 1;
+
+                    queue.push(n);
+                }
+            }
+
+            if (
+                component.length >
+                largestSize
+            ) {
+                largestSize =
+                    component.length;
+
+                largestPixels =
+                    component;
+            }
+        }
+    }
+
+    const result =
+        new Uint8ClampedArray(
+            rgbaMask.length
+        );
+
+    for (
+        const pixelIndex
+        of largestPixels
+    ) {
+        const i =
+            pixelIndex * 4;
+
+        result[i] =
+            rgbaMask[i];
+
+        result[i+1] =
+            rgbaMask[i+1];
+
+        result[i+2] =
+            rgbaMask[i+2];
+
+        result[i+3] =
+            rgbaMask[i+3];
+    }
+
+    return result;
 }
 
 /**
