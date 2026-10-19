@@ -18,21 +18,38 @@ let isReapplyingThresholds = false;
 const SUPPORTED_MIME_PREFIX = "image/";
 
 const elements = {
-    dropArea: document.getElementById("dropArea"),
-    fileInput: document.getElementById("fileInput"),
-    selectBtn: document.getElementById("selectBtn"),
+    dropArea:
+        document.getElementById("dropArea"),
 
-    clearBtn: document.getElementById("clearBtn"),
-    processAllBtn: document.getElementById("processAllBtn"),
+    fileInput:
+        document.getElementById("fileInput"),
 
-    previewArea: document.getElementById("previewArea"),
-    emptyState: document.getElementById("emptyState"),
-    fileCount: document.getElementById("fileCount"),
+    selectBtn:
+        document.getElementById("selectBtn"),
 
-    messageArea: document.getElementById("messageArea"),
+    clearBtn:
+        document.getElementById("clearBtn"),
 
-    modelStatus: document.getElementById("modelStatus"),
-    modelStatusIcon: document.getElementById("modelStatusIcon"),
+    processAllBtn:
+        document.getElementById("processAllBtn"),
+
+    previewArea:
+        document.getElementById("previewArea"),
+
+    emptyState:
+        document.getElementById("emptyState"),
+
+    fileCount:
+        document.getElementById("fileCount"),
+
+    messageArea:
+        document.getElementById("messageArea"),
+
+    modelStatus:
+        document.getElementById("modelStatus"),
+
+    modelStatusIcon:
+        document.getElementById("modelStatusIcon"),
 
     modelProgressArea:
         document.getElementById("modelProgressArea"),
@@ -41,28 +58,33 @@ const elements = {
         document.getElementById("modelProgressBar"),
 
     modelProgressText:
-        document.getElementById("modelProgressText")
-        
+        document.getElementById("modelProgressText"),
+
     transparentThreshold:
-    document.getElementById("transparentThreshold"),
+        document.getElementById(
+            "transparentThreshold"
+        ),
 
     transparentThresholdValue:
         document.getElementById(
             "transparentThresholdValue"
         ),
-    
+
     opaqueThreshold:
-        document.getElementById("opaqueThreshold"),
-    
+        document.getElementById(
+            "opaqueThreshold"
+        ),
+
     opaqueThresholdValue:
         document.getElementById(
             "opaqueThresholdValue"
         ),
-    
-    resetThresholdBtn:
-        document.getElementById("resetThresholdBtn"),
-    };
 
+    resetThresholdBtn:
+        document.getElementById(
+            "resetThresholdBtn"
+        )
+};
 let imageItems = [];
 
 let model = null;
