@@ -834,6 +834,12 @@ async function removeBackground(item) {
                 uint8MaskData
             );
 
+        console.log(
+            "stored mask",
+            Math.min(...uint8MaskData.slice(0,1000)),
+            Math.max(...uint8MaskData.slice(0,1000))
+        );
+
         item.maskWidth = maskWidth;
         item.maskHeight = maskHeight;
 
