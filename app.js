@@ -7,6 +7,12 @@ import {
 
 const MODEL_ID = "Xenova/modnet";
 
+const DEFAULT_TRANSPARENT_THRESHOLD = 40;
+const DEFAULT_OPAQUE_THRESHOLD = 220;
+
+let thresholdUpdateTimer = null;
+let isReapplyingThresholds = false;
+
 // 同時処理ではなく1枚ずつ処理し、
 // スマートフォンでのメモリ不足を起こしにくくします。
 const SUPPORTED_MIME_PREFIX = "image/";
@@ -158,6 +164,21 @@ function registerEvents() {
     );
 
     window.addEventListener("beforeunload", cleanupObjectUrls);
+
+    elements.transparentThreshold.addEventListener(
+    "input",
+    handleThresholdInput
+);
+    
+    elements.opaqueThreshold.addEventListener(
+        "input",
+        handleThresholdInput
+    );
+    
+    elements.resetThresholdBtn.addEventListener(
+        "click",
+        resetThresholds
+);
 }
 
 /**
@@ -190,10 +211,24 @@ function addFiles(fileList) {
 
         const item = {
             id: createItemId(),
+        
             file,
-            originalUrl: URL.createObjectURL(file),
+        
+            originalUrl:
+                URL.createObjectURL(file),
+        
             resultUrl: null,
             resultBlob: null,
+        
+            /*
+             * AI推論後のマスクを保存します。
+             * しきい値変更時は、このマスクから
+             * PNGだけを再生成します。
+             */
+            maskData: null,
+            maskWidth: 0,
+            maskHeight: 0,
+        
             status: "ready",
             errorMessage: ""
         };
@@ -671,12 +706,15 @@ async function processAllImages() {
 /**
  * 実際の背景削除
  */
-async function removeBackground(file) {
+async function removeBackground(item) {
     if (!model || !processor) {
-        throw new Error("AIモデルが準備されていません。");
+        throw new Error(
+            "AIモデルが準備されていません。"
+        );
     }
 
-    const sourceUrl = URL.createObjectURL(file);
+    const sourceUrl =
+        URL.createObjectURL(item.file);
 
     try {
         const originalImage =
@@ -699,11 +737,8 @@ async function removeBackground(file) {
         }
 
         /*
-         * 出力例:
-         * [1, 1, 512, 512]
-         *
-         * バッチ次元だけを除去:
-         * [1, 512, 512]
+         * MODNetの出力は既に0～1なので、
+         * sigmoidは実行しません。
          */
         let maskTensor = outputTensor;
 
@@ -711,61 +746,72 @@ async function removeBackground(file) {
             Array.isArray(maskTensor.dims) &&
             maskTensor.dims.length === 4
         ) {
-            maskTensor = maskTensor.squeeze(0);
+            maskTensor =
+                maskTensor.squeeze(0);
         }
-
-        console.log(
-            "マスクTensor:",
-            maskTensor.dims,
-            maskTensor.type
-        );
 
         if (maskTensor.dims.length !== 3) {
             throw new Error(
-                `マスクの次元が不正です: ` +
-                `${JSON.stringify(maskTensor.dims)}`
+                `マスクの次元が不正です: ${
+                    JSON.stringify(maskTensor.dims)
+                }`
             );
         }
 
-        const channels = maskTensor.dims[0];
-        const maskHeight = maskTensor.dims[1];
-        const maskWidth = maskTensor.dims[2];
+        const channels =
+            maskTensor.dims[0];
+
+        const maskHeight =
+            maskTensor.dims[1];
+
+        const maskWidth =
+            maskTensor.dims[2];
 
         if (channels !== 1) {
             throw new Error(
-                `マスクのチャンネル数が不正です: ${channels}`
+                `マスクのチャンネル数が不正です: ${
+                    channels
+                }`
             );
         }
 
-        /*
-         * float32のマスクを、
-         * RawImageが扱えるUint8ClampedArrayへ変換
-         */
-        const floatMaskData = maskTensor.data;
+        const floatMaskData =
+            maskTensor.data;
 
         const uint8MaskData =
-            new Uint8ClampedArray(floatMaskData.length);
+            new Uint8ClampedArray(
+                floatMaskData.length
+            );
 
         for (
             let index = 0;
             index < floatMaskData.length;
             index++
         ) {
-            const value = floatMaskData[index];
+            const value =
+                floatMaskData[index];
 
-            uint8MaskData[index] = Math.round(
-                Math.max(0, Math.min(1, value)) * 255
-            );
+            uint8MaskData[index] =
+                Math.round(
+                    Math.max(
+                        0,
+                        Math.min(1, value)
+                    ) * 255
+                );
         }
 
         /*
-         * RawImageを直接作成します。
-         *
-         * data
-         * width
-         * height
-         * channels
+         * AIの元マスクを保持します。
+         * しきい値処理前のデータです。
          */
+        item.maskData =
+            new Uint8ClampedArray(
+                uint8MaskData
+            );
+
+        item.maskWidth = maskWidth;
+        item.maskHeight = maskHeight;
+
         const maskImage = new RawImage(
             uint8MaskData,
             maskWidth,
@@ -773,16 +819,14 @@ async function removeBackground(file) {
             1
         );
 
-        /*
-         * resize()はPromiseを返すためawaitが必要
-         */
-        const resizedMask = await maskImage.resize(
-            originalImage.width,
-            originalImage.height
-        );
+        const resizedMask =
+            await maskImage.resize(
+                originalImage.width,
+                originalImage.height
+            );
 
         return await composeTransparentPng(
-            file,
+            item.file,
             resizedMask
         );
     } finally {
@@ -1208,6 +1252,206 @@ function waitForNextFrame() {
             resolve();
         });
     });
+}
+
+/**
+ * しきい値変更
+ */
+function handleThresholdInput() {
+    normalizeThresholdValues();
+    updateThresholdDisplay();
+
+    clearTimeout(thresholdUpdateTimer);
+
+    /*
+     * スライダー操作中に毎回PNGを作ると重いため、
+     * 操作停止から少し後に再生成します。
+     */
+    thresholdUpdateTimer = setTimeout(() => {
+        reapplyThresholdsToCompletedImages();
+    }, 180);
+}
+
+/**
+ * 下限が上限を超えないように調整
+ */
+function normalizeThresholdValues() {
+    let transparentValue =
+        getTransparentThreshold();
+
+    let opaqueValue =
+        getOpaqueThreshold();
+
+    if (transparentValue >= opaqueValue) {
+        opaqueValue = Math.min(
+            255,
+            transparentValue + 1
+        );
+
+        elements.opaqueThreshold.value =
+            String(opaqueValue);
+    }
+}
+
+/**
+ * しきい値表示更新
+ */
+function updateThresholdDisplay() {
+    elements.transparentThresholdValue.textContent =
+        String(getTransparentThreshold());
+
+    elements.opaqueThresholdValue.textContent =
+        String(getOpaqueThreshold());
+}
+
+/**
+ * 初期値に戻す
+ */
+function resetThresholds() {
+    elements.transparentThreshold.value =
+        String(DEFAULT_TRANSPARENT_THRESHOLD);
+
+    elements.opaqueThreshold.value =
+        String(DEFAULT_OPAQUE_THRESHOLD);
+
+    updateThresholdDisplay();
+
+    reapplyThresholdsToCompletedImages();
+}
+
+/**
+ * 透明化しきい値取得
+ */
+function getTransparentThreshold() {
+    return Number(
+        elements.transparentThreshold.value
+    );
+}
+
+/**
+ * 不透明化しきい値取得
+ */
+function getOpaqueThreshold() {
+    return Number(
+        elements.opaqueThreshold.value
+    );
+}
+
+/**
+ * 保存済みマスクへしきい値を再適用
+ */
+async function reapplyThresholdsToCompletedImages() {
+    if (
+        isProcessingAll ||
+        isReapplyingThresholds
+    ) {
+        return;
+    }
+
+    const targetItems = imageItems.filter((item) => {
+        return (
+            item.maskData &&
+            item.maskWidth > 0 &&
+            item.maskHeight > 0
+        );
+    });
+
+    if (targetItems.length === 0) {
+        return;
+    }
+
+    isReapplyingThresholds = true;
+
+    try {
+        for (const item of targetItems) {
+            item.status = "processing";
+
+            renderAllCards();
+
+            const resultBlob =
+                await createResultFromStoredMask(item);
+
+            if (item.resultUrl) {
+                URL.revokeObjectURL(item.resultUrl);
+            }
+
+            item.resultBlob = resultBlob;
+            item.resultUrl =
+                URL.createObjectURL(resultBlob);
+
+            item.status = "completed";
+
+            renderAllCards();
+
+            await waitForNextFrame();
+        }
+
+        showMessage(
+            "しきい値を処理済み画像へ再適用しました。",
+            "success"
+        );
+    } catch (error) {
+        console.error(
+            "Threshold reapply error:",
+            error
+        );
+
+        showMessage(
+            error instanceof Error
+                ? error.message
+                : "しきい値の再適用に失敗しました。",
+            "error"
+        );
+    } finally {
+        isReapplyingThresholds = false;
+
+        updateInterface();
+        renderAllCards();
+    }
+}
+
+/**
+ * 保存済みマスクからPNGを再生成
+ */
+async function createResultFromStoredMask(item) {
+    if (
+        !item.maskData ||
+        !item.maskWidth ||
+        !item.maskHeight
+    ) {
+        throw new Error(
+            "再利用できる背景マスクがありません。"
+        );
+    }
+
+    const maskImage = new RawImage(
+        new Uint8ClampedArray(item.maskData),
+        item.maskWidth,
+        item.maskHeight,
+        1
+    );
+
+    const originalBitmap =
+        await createImageBitmap(item.file);
+
+    const originalWidth =
+        originalBitmap.width;
+
+    const originalHeight =
+        originalBitmap.height;
+
+    originalBitmap.close();
+
+    const resizedMask =
+        await maskImage.resize(
+            originalWidth,
+            originalHeight
+        );
+
+    return await composeTransparentPng(
+        item.file,
+        resizedMask
+    );
 }
 
 initialize();
