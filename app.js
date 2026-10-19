@@ -1273,14 +1273,13 @@ function keepLargestComponentOnly(
                 largestPixels =
                     component;
             }
-            console.log(
-            "Largest component size:",
-            largestSize
-);
-
-return result;
         }
     }
+
+    console.log(
+        "Largest component size:",
+        largestSize
+    );
 
     const result =
         new Uint8ClampedArray(
