@@ -695,8 +695,6 @@ async function removeBackground(file) {
             maskTensor = maskTensor.squeeze(0);
         }
 
-        maskTensor = maskTensor.sigmoid();
-
         console.log(
             "マスクTensor:",
             maskTensor.dims,
