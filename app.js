@@ -969,7 +969,17 @@ async function composeTransparentPng(
 
     const opaqueThreshold =
         getOpaqueThreshold();
+    
+    console.log(
+        "transparentThreshold",
+        transparentThreshold
+    );
 
+    console.log(
+        "opaqueThreshold",
+        opaqueThreshold
+    );
+    
     for (
         let index = 0;
         index < originalData.length;
