@@ -36,7 +36,26 @@ const elements = {
 
     modelProgressText:
         document.getElementById("modelProgressText")
-};
+        
+    transparentThreshold:
+    document.getElementById("transparentThreshold"),
+
+    transparentThresholdValue:
+        document.getElementById(
+            "transparentThresholdValue"
+        ),
+    
+    opaqueThreshold:
+        document.getElementById("opaqueThreshold"),
+    
+    opaqueThresholdValue:
+        document.getElementById(
+            "opaqueThresholdValue"
+        ),
+    
+    resetThresholdBtn:
+        document.getElementById("resetThresholdBtn"),
+    };
 
 let imageItems = [];
 
