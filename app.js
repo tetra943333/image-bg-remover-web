@@ -1427,6 +1427,8 @@ function getOpaqueThreshold() {
  * 保存済みマスクへしきい値を再適用
  */
 async function reapplyThresholdsToCompletedImages() {
+    
+    console.log("threshold reapplied");
     if (
         isProcessingAll ||
         isReapplyingThresholds
