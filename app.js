@@ -680,28 +680,27 @@ async function removeBackground(file) {
         }
 
         /*
-         * モデル出力:
-         * [1, 1, 高さ, 幅]
+         * 出力例:
+         * [1, 1, 512, 512]
          *
-         * squeeze()を引数なしで使うと:
-         * [高さ, 幅]
-         *
-         * となり、RawImageが要求する
-         * [チャンネル, 高さ, 幅]
-         * ではなくなるため、
-         * バッチ次元0だけを削除します。
+         * バッチ次元だけを除去:
+         * [1, 512, 512]
          */
         let maskTensor = outputTensor;
 
-        if (maskTensor.dims.length === 4) {
+        if (
+            Array.isArray(maskTensor.dims) &&
+            maskTensor.dims.length === 4
+        ) {
             maskTensor = maskTensor.squeeze(0);
         }
 
         maskTensor = maskTensor.sigmoid();
 
         console.log(
-            "マスクTensorの形状:",
-            maskTensor.dims
+            "マスクTensor:",
+            maskTensor.dims,
+            maskTensor.type
         );
 
         if (maskTensor.dims.length !== 3) {
@@ -711,10 +710,56 @@ async function removeBackground(file) {
             );
         }
 
-        const maskImage =
-            await RawImage.fromTensor(maskTensor);
+        const channels = maskTensor.dims[0];
+        const maskHeight = maskTensor.dims[1];
+        const maskWidth = maskTensor.dims[2];
 
-        const resizedMask = maskImage.resize(
+        if (channels !== 1) {
+            throw new Error(
+                `マスクのチャンネル数が不正です: ${channels}`
+            );
+        }
+
+        /*
+         * float32のマスクを、
+         * RawImageが扱えるUint8ClampedArrayへ変換
+         */
+        const floatMaskData = maskTensor.data;
+
+        const uint8MaskData =
+            new Uint8ClampedArray(floatMaskData.length);
+
+        for (
+            let index = 0;
+            index < floatMaskData.length;
+            index++
+        ) {
+            const value = floatMaskData[index];
+
+            uint8MaskData[index] = Math.round(
+                Math.max(0, Math.min(1, value)) * 255
+            );
+        }
+
+        /*
+         * RawImageを直接作成します。
+         *
+         * data
+         * width
+         * height
+         * channels
+         */
+        const maskImage = new RawImage(
+            uint8MaskData,
+            maskWidth,
+            maskHeight,
+            1
+        );
+
+        /*
+         * resize()はPromiseを返すためawaitが必要
+         */
+        const resizedMask = await maskImage.resize(
             originalImage.width,
             originalImage.height
         );
