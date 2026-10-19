@@ -104,6 +104,9 @@ env.allowLocalModels = false;
  */
 function initialize() {
     registerEvents();
+
+    updateThresholdDisplay();
+
     updateInterface();
 }
 
@@ -854,6 +857,10 @@ async function removeBackground(item) {
     } finally {
         URL.revokeObjectURL(sourceUrl);
     }
+    console.log(
+        "maskData",
+        item.maskData?.length
+    );
 }
 
 /**
