@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>背景透過ツール</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+
+        <h1>背景透過ツール</h1>
+
+        <div id="dropArea">
+            <p>画像をドラッグ＆ドロップ</p>
+            <p>または</p>
+
+            <input type="file"
+                   id="fileInput"
+                   accept="image/*"
+                   multiple
+                   hidden>
+
+            <button id="selectBtn">
+                画像を選択
+            </button>
+        </div>
+
+        <div class="actions">
+            <button id="processBtn">
+                STEP2で背景削除
+            </button>
+        </div>
+
+        <div id="previewArea"></div>
+
+    </div>
+
+    <script src="app.js"></script>
+
+</body>
+</html>
