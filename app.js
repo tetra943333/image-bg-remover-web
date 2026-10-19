@@ -976,6 +976,28 @@ async function composeTransparentPng(
 
     const opaqueThreshold =
         getOpaqueThreshold();
+
+    let minAlpha = 255;
+    let maxAlpha = 0;
+    
+    for(let i=0;i<maskData.length;i+=4){
+    
+        minAlpha = Math.min(
+            minAlpha,
+            maskData[i]
+        );
+    
+        maxAlpha = Math.max(
+            maxAlpha,
+            maskData[i]
+        );
+    }
+
+console.log(
+    "mask range",
+    minAlpha,
+    maxAlpha
+);
     
     console.log(
         "transparentThreshold",
