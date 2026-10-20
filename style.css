@@ -583,4 +583,17 @@ button {
     .card-buttons .download-button {
         grid-column: auto;
     }
+    
+    .threshold-option{
+    margin-top:15px;
+    padding-top:10px;
+
+    border-top:1px solid #ddd;
+
+    font-size:14px;
+    }
+
+    .threshold-option input{
+    margin-right:8px;
+    }
 }
