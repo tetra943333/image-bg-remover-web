@@ -1030,12 +1030,6 @@ async function composeTransparentPng(
     }
 
 console.log(
-    "mask range",
-    minAlpha,
-    maxAlpha
-);
-    
-    console.log(
         "transparentThreshold",
         transparentThreshold
     );
@@ -1297,15 +1291,10 @@ function keepLargestComponentOnly(
         }
     }
 
-    console.log(
-        "Largest component size:",
-        largestSize
-    );
-
     const result =
-        new Uint8ClampedArray(
-            rgbaMask.length
-        );
+    new Uint8ClampedArray(
+        rgbaMask.length
+    );
 
     for (
         const pixelIndex
@@ -1614,10 +1603,7 @@ function resetThresholds() {
  */
 function getTransparentThreshold() {
 
-    console.log(
-        "slider value =",
-        elements.transparentThreshold.value
-    );
+    
 
     return Number(
         elements.transparentThreshold.value
