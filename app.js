@@ -79,7 +79,12 @@ const elements = {
         document.getElementById(
             "opaqueThresholdValue"
         ),
-
+    
+    largestComponentOnly:
+    document.getElementById(
+        "largestComponentOnly"
+    ),
+    
     resetThresholdBtn:
         document.getElementById(
             "resetThresholdBtn"
@@ -204,6 +209,17 @@ function registerEvents() {
         "click",
         resetThresholds
 );
+
+    elements
+    .largestComponentOnly
+    .addEventListener(
+        "change",
+        () => {
+
+            reapplyThresholdsToCompletedImages();
+
+        }
+    );
 }
 
 /**
@@ -970,18 +986,23 @@ async function composeTransparentPng(
         );
 
     let maskData =
-    normalizeMaskData(
-        maskImage,
-        width,
-        height
-    );
-
-maskData =
-    keepLargestComponentOnly(
-        maskData,
-        width,
-        height
-    );
+        normalizeMaskData(
+            maskImage,
+            width,
+            height
+        );
+    
+    if (
+        isLargestComponentEnabled()
+    ) {
+    
+        maskData =
+            keepLargestComponentOnly(
+                maskData,
+                width,
+                height
+            );
+    }
 
     const originalData =
         originalPixels.data;
@@ -1729,6 +1750,14 @@ async function createResultFromStoredMask(item) {
         item.file,
         resizedMask
     );
+}
+
+function isLargestComponentEnabled() {
+
+    return elements
+        .largestComponentOnly
+        .checked;
+
 }
 
 initialize();
